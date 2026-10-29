@@ -415,6 +415,7 @@ tr:last-child td{border-bottom:0}
       <button role="tab" aria-selected="true" aria-controls="pEmp" id="tEmp">Employees</button>
       <button role="tab" aria-selected="false" aria-controls="pAnn" id="tAnn">Announcements</button>
       <button role="tab" aria-selected="false" aria-controls="pBen" id="tBen">Benefits &amp; forms</button>
+      <button role="tab" aria-selected="false" aria-controls="pCon" id="tCon">Contacts</button>
       <button role="tab" aria-selected="false" aria-controls="pStat" id="tStat">Company stats</button>
     </div>
 
@@ -487,6 +488,25 @@ tr:last-child td{border-bottom:0}
       <div class="box"><h2>Current benefits and forms</h2><p>Shown on the portal in this order within each category.</p><div class="list" id="bList"></div></div>
     </section>
 
+    <section class="panel" id="pCon" role="tabpanel" aria-labelledby="tCon" hidden>
+      <form class="box" id="fCon">
+        <h2 id="cFormTitle">Add a contact</h2>
+        <p>Shown in the Contact persons section. Enter at least one email address.</p>
+        <div class="f" style="margin-bottom:1rem"><label>Icon</label><div class="icons" id="cIcons"></div></div>
+        <div class="fgrid two">
+          <div class="f"><label for="cTitle">Concern or team</label><input id="cTitle" maxlength="120" placeholder="e.g. Payroll concerns"></div>
+          <div class="f"><label for="cDesc">Short description <span style="font-weight:400;color:var(--muted)">(optional)</span></label><input id="cDesc" maxlength="300" placeholder="e.g. Salary, deductions, and payslips"></div>
+          <div class="f"><label for="cKh">KHealth email</label><input id="cKh" type="email" placeholder="name@khealthcorp.com"></div>
+          <div class="f"><label for="cCv">Careview email</label><input id="cCv" type="email" placeholder="name@careviewcorp.com"></div>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:.6rem;flex-wrap:wrap">
+          <button class="abtn pri" type="submit" id="cSave">Add contact</button>
+          <button class="abtn" type="button" id="cCancel" hidden>Cancel editing</button>
+        </div>
+      </form>
+      <div class="box"><h2>Current contacts</h2><p>Shown on the portal in this order.</p><div class="list" id="cList"></div></div>
+    </section>
+
     <section class="panel" id="pStat" role="tabpanel" aria-labelledby="tStat" hidden>
       <form class="box" id="fStat">
         <h2>Company stats</h2>
@@ -541,7 +561,7 @@ function initPortal(who){
   });
 }
 // ====== Paste your Apps Script Web App URL between the quotes ======
-var API_URL = 'https://script.google.com/macros/s/AKfycbylY5DPrtI6a7keT4-919TcBFuKF-fpWQZg3yUBz9pEh3YQwPICOyEwYKZbjRtMJzQ9BA/exec';
+var API_URL = 'PASTE_WEB_APP_URL_HERE';
 // ===================================================================
 
 try{var _t=localStorage.getItem('kh-theme');if(_t)document.documentElement.setAttribute('data-theme',_t)}catch(e){}
@@ -557,6 +577,10 @@ var ICONS={
   growth: '<path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/>',
   alert: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
   form: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3M9 11h6M9 15h4"/>',
+  monitor: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  person: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
   gift: '<rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 12h18M12 8c-2-4-6-4-6-1s6 1 6 1c2-4 6-4 6-1s-6 1-6 1"/>'
 };
 var $=function(id){return document.getElementById(id)};
@@ -648,12 +672,12 @@ function showAdmin(data,who){
   renderAdmin();window.scrollTo(0,0);
 }
 $('adLogout').addEventListener('click',function(){logout()});
-['tEmp','tAnn','tBen','tStat'].forEach(function(id){
+['tEmp','tAnn','tBen','tCon','tStat'].forEach(function(id){
   $(id).addEventListener('click',function(){
-    ['tEmp','tAnn','tBen','tStat'].forEach(function(o){var on=o===id;$(o).setAttribute('aria-selected',on);$($(o).getAttribute('aria-controls')).hidden=!on});
+    ['tEmp','tAnn','tBen','tCon','tStat'].forEach(function(o){var on=o===id;$(o).setAttribute('aria-selected',on);$($(o).getAttribute('aria-controls')).hidden=!on});
   });
 });
-function renderAdmin(){renderEmployees();renderAnns();renderBens();renderStats()}
+function renderAdmin(){renderEmployees();renderAnns();renderBens();renderCons();renderStats()}
 
 /* Employees */
 function renderEmployees(){
@@ -806,6 +830,41 @@ function renderStats(){
 $('fStat').addEventListener('submit',function(e){
   e.preventDefault();
   adminCall('admin.saveStats',{centers:$('sCenters').value,team:$('sTeam').value,patients:$('sPatients').value,badgeGreen:$('sGreen').value,badgeBlue:$('sBlue').value},'Stats saved. The portal is updated.',e.submitter);
+});
+
+/* Contacts */
+var cIcon='mail',cEditing=null,CON_ICONS=['mail','phone','person','monitor','loan','doc','care','heart','alert','form'];
+function renderConIcons(){$('cIcons').innerHTML=CON_ICONS.filter(function(k){return ICONS[k]}).map(function(k){return '<button type="button" data-icon="'+k+'" aria-label="'+k+' icon" aria-pressed="'+(cIcon===k)+'">'+svg(ICONS[k])+'</button>'}).join('')}
+$('cIcons').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;cIcon=b.dataset.icon;renderConIcons()});
+function resetConForm(){cEditing=null;cIcon='mail';$('fCon').reset();$('cFormTitle').textContent='Add a contact';$('cSave').textContent='Add contact';$('cCancel').hidden=true;renderConIcons()}
+$('cCancel').addEventListener('click',resetConForm);
+function renderCons(){
+  if(!$('cIcons').innerHTML)renderConIcons();
+  var list=AD.contacts||[];
+  $('cList').innerHTML=list.length?list.map(function(k){
+    return '<div class="item"><div class="ico">'+iconHtml(k.icon)+'</div><div class="grow"><b>'+esc(k.title)+'</b><small>'+esc([k.kh,k.cv].filter(Boolean).join(' · '))+'</small></div>'+
+      '<div class="row-actions"><button class="abtn sm" data-act="edit" data-id="'+esc(k.id)+'">Edit</button><button class="abtn sm danger" data-act="del" data-id="'+esc(k.id)+'">Remove</button></div></div>';
+  }).join(''):'<div class="empty">No contacts yet.</div>';
+}
+$('cList').addEventListener('click',function(e){
+  var btn=e.target.closest('button');if(!btn)return;
+  var k=(AD.contacts||[]).filter(function(x){return x.id===btn.dataset.id})[0];if(!k)return;
+  if(btn.dataset.act==='edit'){
+    cEditing=k.id;cIcon=ICONS[k.icon]?k.icon:'mail';
+    $('cTitle').value=k.title;$('cDesc').value=k.desc;$('cKh').value=k.kh;$('cCv').value=k.cv;
+    $('cFormTitle').textContent='Edit contact';$('cSave').textContent='Save changes';$('cCancel').hidden=false;renderConIcons();
+    $('fCon').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  if(btn.dataset.act==='del'&&confirm('Remove "'+k.title+'" from the portal?'))adminCall('admin.removeContact',{id:k.id},'Contact removed.',btn).then(function(ok){if(ok&&cEditing===k.id)resetConForm()});
+});
+$('fCon').addEventListener('submit',async function(e){
+  e.preventDefault();
+  var d={id:cEditing,icon:cIcon,title:$('cTitle').value.trim(),desc:$('cDesc').value.trim(),kh:$('cKh').value.trim(),cv:$('cCv').value.trim()};
+  if(!d.title){toast('Please enter the concern or team name.',true);return}
+  if(!d.kh&&!d.cv){toast('Please enter at least one email address.',true);return}
+  var re=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if((d.kh&&!re.test(d.kh))||(d.cv&&!re.test(d.cv))){toast('Please check the email address format.',true);return}
+  if(await adminCall('admin.saveContact',d,cEditing?'Contact updated.':'Contact added.',e.submitter))resetConForm();
 });
 
 </script>
