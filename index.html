@@ -374,6 +374,12 @@ tr:last-child td{border-bottom:0}
 .ph-item input{width:100%;font:inherit;font-size:.88rem;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:.4rem .55rem}
 .ph-act{display:flex;gap:.3rem;flex-wrap:wrap}
 .ph-act .abtn[disabled]{opacity:.35;cursor:default}
+
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:.6rem}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:.8rem .9rem}
+.stat b{display:block;font:700 1.5rem var(--head)}
+.stat span{font-size:.85rem;color:var(--muted)}
+@media (max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -432,6 +438,7 @@ tr:last-child td{border-bottom:0}
       <button role="tab" aria-selected="false" aria-controls="pBen" id="tBen">Benefits &amp; forms</button>
       <button role="tab" aria-selected="false" aria-controls="pCon" id="tCon">Contacts</button>
       <button role="tab" aria-selected="false" aria-controls="pStat" id="tStat">Company info</button>
+      <button role="tab" aria-selected="false" aria-controls="pLog" id="tLog">Access log</button>
     </div>
 
     <section class="panel" id="pEmp" role="tabpanel" aria-labelledby="tEmp">
@@ -575,6 +582,18 @@ tr:last-child td{border-bottom:0}
         <div style="margin-top:1rem"><button class="abtn pri" type="submit">Save changes</button></div>
       </form>
     </section>
+    <section class="panel" id="pLog" role="tabpanel" aria-labelledby="tLog" hidden>
+      <div class="box">
+        <div class="toolbar" style="justify-content:space-between">
+          <div><h2>Access log</h2><p style="margin:.2rem 0 0;color:var(--muted);font-size:.95rem">Every sign-in to the portal, newest first. The full history is in the Access Log tab of your Google Sheet.</p></div>
+          <div style="display:flex;gap:.6rem;align-items:center"><span id="lStatus" style="color:var(--muted);font-size:.9rem"></span><button class="abtn" type="button" id="lRefresh">Refresh</button></div>
+        </div>
+        <div class="stats" id="lStats"></div>
+        <div class="toolbar" style="margin-top:1rem"><div class="f"><label for="lSearch" class="sr">Search the log</label><input id="lSearch" type="search" placeholder="Search by ID, name, result, or date (e.g. 2026-10-30)…"></div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Date and time</th><th>Employee ID</th><th>Name</th><th>Role</th><th>Result</th><th>Device</th></tr></thead><tbody id="lRows"></tbody></table></div>
+        <p style="color:var(--muted);font-size:.88rem;margin:.75rem 0 0">Shows the latest 300 entries.</p>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -611,7 +630,7 @@ function initPortal(who){
   });
 }
 // ====== Paste your Apps Script Web App URL between the quotes ======
-var API_URL = 'https://script.google.com/macros/s/AKfycbylY5DPrtI6a7keT4-919TcBFuKF-fpWQZg3yUBz9pEh3YQwPICOyEwYKZbjRtMJzQ9BA/exec';
+var API_URL = 'PASTE_WEB_APP_URL_HERE';
 // ===================================================================
 
 try{var _t=localStorage.getItem('kh-theme');if(_t)document.documentElement.setAttribute('data-theme',_t)}catch(e){}
@@ -638,13 +657,26 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 function svg(p){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>'}
 function iconHtml(i){return /^data:image\//.test(i)?'<img src="'+esc(i)+'" alt="">':svg(ICONS[i]||ICONS.plus)}
 
-async function api(action,payload){
+var RETRYABLE={login:1,portal:1,images:1,'admin.data':1,'admin.log':1};
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
+async function api(action,payload,onRetry){
   if(API_URL.indexOf('https://')!==0&&API_URL.indexOf('http://localhost')!==0)throw new Error('The portal is not connected to its server yet. Please contact HR.');
-  var res;
-  try{res=await fetch(API_URL,{method:'POST',body:JSON.stringify(Object.assign({action:action},payload||{}))})}
-  catch(e){throw new Error("Can't reach the portal server. Check your internet connection and try again.")}
-  var data;try{data=await res.json()}catch(e){throw new Error('The portal server sent an unexpected reply. Please try again.')}
-  return data;
+  var tries=RETRYABLE[action]?4:1,last;
+  for(var n=0;n<tries;n++){
+    if(n>0){if(onRetry)onRetry(n);await sleep(900*Math.pow(2,n-1)+Math.random()*700)}
+    var res,data;
+    try{res=await fetch(API_URL,{method:'POST',body:JSON.stringify(Object.assign({action:action},payload||{}))})}
+    catch(e){last=new Error("Can't reach the portal server. Check your internet connection and try again.");continue}
+    try{data=await res.json()}catch(e){last=new Error('The portal is busy right now. Please try again in a moment.');continue}
+    if(data&&data.busy){last=new Error(data.error);continue}
+    return data;
+  }
+  throw last;
+}
+function deviceInfo(){
+  var u=navigator.userAgent||'',os=/Android/.test(u)?'Android':/iPhone|iPad|iPod/.test(u)?'iPhone/iPad':/Windows/.test(u)?'Windows':/Mac OS X/.test(u)?'Mac':/Linux/.test(u)?'Linux':'Other';
+  var br=/Edg\//.test(u)?'Edge':/SamsungBrowser/.test(u)?'Samsung Internet':/OPR\//.test(u)?'Opera':/Firefox\//.test(u)?'Firefox':/CriOS|Chrome\//.test(u)?'Chrome':/Safari\//.test(u)?'Safari':'Browser';
+  return os+' · '+br+(/Mobi|Android|iPhone/.test(u)?' (mobile)':'');
 }
 function saveSession(token,role){try{sessionStorage.setItem('kh-t',JSON.stringify({t:token,r:role}))}catch(e){}}
 function getSession(){try{return JSON.parse(sessionStorage.getItem('kh-t')||'null')}catch(e){return null}}
@@ -697,7 +729,7 @@ function showPortal(html,who){
     if(!id||!bd){showErr('Please enter both your Employee ID and birthdate.');return}
     btn.disabled=true;bt.textContent='Signing you in…';
     try{
-      var r=await api('login',{id:id,bd:bd,role:role});
+      var r=await api('login',{id:id,bd:bd,role:role,device:deviceInfo()},function(){bt.textContent='Busy, retrying…'});
       if(!r.ok){showErr(r.error||'Sign-in failed. Please try again.');return}
       enter(r,r.token);
     }catch(x){showErr(x.message)}
@@ -726,9 +758,9 @@ function showAdmin(data,who){
   renderAdmin();window.scrollTo(0,0);
 }
 $('adLogout').addEventListener('click',function(){logout()});
-['tEmp','tNews','tAnn','tBen','tCon','tStat'].forEach(function(id){
+['tEmp','tNews','tAnn','tBen','tCon','tStat','tLog'].forEach(function(id){
   $(id).addEventListener('click',function(){
-    ['tEmp','tNews','tAnn','tBen','tCon','tStat'].forEach(function(o){var on=o===id;$(o).setAttribute('aria-selected',on);$($(o).getAttribute('aria-controls')).hidden=!on});
+    ['tEmp','tNews','tAnn','tBen','tCon','tStat','tLog'].forEach(function(o){var on=o===id;$(o).setAttribute('aria-selected',on);$($(o).getAttribute('aria-controls')).hidden=!on});
   });
 });
 function renderAdmin(){renderEmployees();renderNews();renderAnns();renderBens();renderCons();renderStats()}
@@ -1024,6 +1056,34 @@ $('fNews').addEventListener('submit',async function(e){
   }catch(x){toast(x.message,true)}
   finally{save.disabled=false;if($('nProg').textContent.indexOf('Saving')===0||$('nProg').textContent.indexOf('Uploading')===0)$('nProg').textContent=''}
 });
+
+/* Access log */
+var LOG=null;
+async function loadLog(btn){
+  var s=getSession();if(!s)return;
+  if(btn)btn.disabled=true;$('lStatus').textContent='Loading…';
+  try{
+    var r=await api('admin.log',{token:s.t});
+    if(r.expired){logout('Your session has ended. Please sign in again.');return}
+    if(!r.ok)throw new Error(r.error||'Could not load the access log.');
+    LOG=r.log;renderLog();$('lStatus').textContent='Updated '+new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  }catch(x){$('lStatus').textContent='';toast(x.message,true)}
+  finally{if(btn)btn.disabled=false}
+}
+function renderLog(){
+  if(!LOG)return;var s=LOG.stats;
+  $('lStats').innerHTML=[['Sign-ins today',s.today],['Employees today',s.uniqueToday],['Sign-ins, last 7 days',s.week],['Employees, last 7 days',s.uniqueWeek],['Failed attempts today',s.failedToday]]
+    .map(function(x){return '<div class="stat"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>'}).join('');
+  var q=$('lSearch').value.trim().toLowerCase();
+  var rows=LOG.entries.filter(function(e){return !q||(e.id+' '+e.name+' '+e.result+' '+e.t).toLowerCase().indexOf(q)>-1});
+  $('lRows').innerHTML=rows.length?rows.map(function(e){
+    var ok=e.result==='Signed in';
+    return '<tr><td style="white-space:nowrap">'+esc(e.t)+'</td><td>'+esc(e.id)+'</td><td>'+esc(e.name)+'</td><td>'+esc(e.role)+'</td><td><span class="st '+(ok?'on':'off')+'"'+(ok?'':' style="background:#FDECEC;color:#A12222"')+'>'+esc(e.result)+'</span></td><td>'+esc(e.device)+'</td></tr>';
+  }).join(''):'<tr><td colspan="6" class="empty">'+(q?'No entries match your search.':'No sign-ins recorded yet.')+'</td></tr>';
+}
+$('lSearch').addEventListener('input',renderLog);
+$('lRefresh').addEventListener('click',function(){loadLog(this)});
+$('tLog').addEventListener('click',function(){if(!LOG)loadLog()});
 
 </script>
 </body>
