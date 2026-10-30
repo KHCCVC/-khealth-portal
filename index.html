@@ -360,6 +360,20 @@ tr:last-child td{border-bottom:0}
 .cat-tag{display:inline-block;font:700 .72rem var(--body);padding:.1rem .5rem;border-radius:6px;margin-left:.4rem;vertical-align:middle;background:var(--blue-soft);color:var(--blue-deep)}
 .cat-tag.ben{background:var(--green-soft);color:var(--green-deep)}
 .group-h{font:600 .85rem var(--head);color:var(--muted);margin:.6rem 0 .1rem;text-transform:uppercase;letter-spacing:.04em}
+.ph-drop{position:relative;display:block;border:2px dashed var(--line);border-radius:14px;padding:1.1rem;text-align:center;cursor:pointer;margin-top:.2rem}
+.ph-drop:hover,.ph-drop.over{border-color:var(--blue);background:var(--blue-soft)}
+.ph-drop input{position:absolute;width:1px;height:1px;opacity:0}
+.ph-drop b{display:block;font:600 .95rem var(--head)}
+.ph-drop span{font-size:.88rem;color:var(--muted);font-weight:400}
+.ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:.75rem;margin-top:.9rem}
+.ph-item{border:1px solid var(--line);border-radius:12px;padding:.5rem;display:grid;gap:.45rem;background:var(--bg)}
+.ph-th{position:relative;aspect-ratio:4/3;border-radius:8px;overflow:hidden;background:var(--line);display:grid;place-items:center}
+.ph-th img{width:100%;height:100%;object-fit:cover}
+.ph-wait{font-size:.8rem;color:var(--muted)}
+.ph-cover{position:absolute;left:6px;top:6px;background:var(--green-deep);color:#fff;font:700 .7rem var(--head);padding:.15rem .45rem;border-radius:5px}
+.ph-item input{width:100%;font:inherit;font-size:.88rem;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:.4rem .55rem}
+.ph-act{display:flex;gap:.3rem;flex-wrap:wrap}
+.ph-act .abtn[disabled]{opacity:.35;cursor:default}
 </style>
 </head>
 <body>
@@ -413,10 +427,11 @@ tr:last-child td{border-bottom:0}
   <main class="wrap">
     <div class="tabs" role="tablist" aria-label="Admin sections">
       <button role="tab" aria-selected="true" aria-controls="pEmp" id="tEmp">Employees</button>
+      <button role="tab" aria-selected="false" aria-controls="pNews" id="tNews">News &amp; updates</button>
       <button role="tab" aria-selected="false" aria-controls="pAnn" id="tAnn">Announcements</button>
       <button role="tab" aria-selected="false" aria-controls="pBen" id="tBen">Benefits &amp; forms</button>
       <button role="tab" aria-selected="false" aria-controls="pCon" id="tCon">Contacts</button>
-      <button role="tab" aria-selected="false" aria-controls="pStat" id="tStat">Company stats</button>
+      <button role="tab" aria-selected="false" aria-controls="pStat" id="tStat">Company info</button>
     </div>
 
     <section class="panel" id="pEmp" role="tabpanel" aria-labelledby="tEmp">
@@ -442,6 +457,35 @@ tr:last-child td{border-bottom:0}
         </div>
         <div class="tbl-wrap"><table><thead><tr><th>Employee ID</th><th>Name</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead><tbody id="eRows"></tbody></table></div>
       </div>
+    </section>
+
+    <section class="panel" id="pNews" role="tabpanel" aria-labelledby="tNews" hidden>
+      <form class="box" id="fNews" novalidate>
+        <h2 id="nFormTitle">Post news &amp; updates</h2>
+        <p>The newest published post is featured on the portal. Older posts move to the history automatically.</p>
+        <div class="fgrid two">
+          <div class="f" style="grid-column:1/-1"><label for="nTitle">Title</label><input id="nTitle" maxlength="200" placeholder="e.g. TamF.L.E.X. Series, Part 2"></div>
+          <div class="f" style="grid-column:1/-1"><label for="nSub">Subtitle</label><input id="nSub" maxlength="400" placeholder="One sentence that sums up the story"></div>
+          <div class="f" style="grid-column:1/-1"><label for="nDesc">Description</label><textarea id="nDesc" maxlength="6000" style="min-height:170px" placeholder="Write the story. Leave a blank line between paragraphs."></textarea></div>
+          <div class="f"><label for="nDate">Date</label><input id="nDate" type="date"></div>
+          <div class="f"><label>Status</label>
+            <div class="seg" role="radiogroup" aria-label="Status">
+              <input type="radio" name="nStatus" id="nPub" value="Published" checked><label for="nPub">Published</label>
+              <input type="radio" name="nStatus" id="nDraft" value="Draft"><label for="nDraft">Draft (hidden)</label>
+            </div>
+          </div>
+        </div>
+        <div class="f" style="margin-top:1.1rem"><label>Photos <span style="font-weight:400;color:var(--muted)">(the first photo is the cover)</span></label>
+          <label class="ph-drop" id="nDrop"><input type="file" id="nFiles" accept="image/jpeg,image/png,image/webp" multiple><b>Add photos</b><span>Click to choose, or drag and drop. JPG, PNG, or WebP.</span></label>
+          <div class="ph-grid" id="nPhotos"></div>
+        </div>
+        <div style="margin-top:1.1rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+          <button class="abtn pri" type="submit" id="nSave">Publish</button>
+          <button class="abtn" type="button" id="nCancel" hidden>Cancel editing</button>
+          <span class="small" id="nProg" aria-live="polite" style="color:var(--muted);font-size:.92rem"></span>
+        </div>
+      </form>
+      <div class="box"><h2>All news &amp; updates</h2><p>Newest first. Drafts are only visible here.</p><div class="list" id="nList"></div></div>
     </section>
 
     <section class="panel" id="pAnn" role="tabpanel" aria-labelledby="tAnn" hidden>
@@ -510,7 +554,7 @@ tr:last-child td{border-bottom:0}
     <section class="panel" id="pStat" role="tabpanel" aria-labelledby="tStat" hidden>
       <form class="box" id="fStat">
         <h2>Company stats</h2>
-        <p>These numbers appear in the Company background section.</p>
+        <p>These numbers appear in the About us section.</p>
         <div class="fgrid" style="grid-template-columns:repeat(3,1fr)">
           <div class="f"><label for="sCenters">PET/CT centers</label><input id="sCenters" maxlength="20"></div>
           <div class="f"><label for="sTeam">Team members</label><input id="sTeam" maxlength="20"></div>
@@ -521,6 +565,12 @@ tr:last-child td{border-bottom:0}
         <div class="fgrid two">
           <div class="f"><label for="sGreen">Green badge</label><input id="sGreen" maxlength="40"></div>
           <div class="f"><label for="sBlue">Blue badge</label><input id="sBlue" maxlength="40"></div>
+        </div>
+        <h2 style="margin-top:1.4rem">Organizational chart</h2>
+        <p>The link opened by the Organizational chart section.</p>
+        <div class="fgrid two">
+          <div class="f"><label for="sOrgUrl">Chart link</label><input id="sOrgUrl" type="url" placeholder="https://"></div>
+          <div class="f"><label for="sOrgDate">Effective date</label><input id="sOrgDate" maxlength="60" placeholder="e.g. October 14, 2026"></div>
         </div>
         <div style="margin-top:1rem"><button class="abtn pri" type="submit">Save changes</button></div>
       </form>
@@ -561,7 +611,7 @@ function initPortal(who){
   });
 }
 // ====== Paste your Apps Script Web App URL between the quotes ======
-var API_URL = 'https://script.google.com/macros/s/AKfycbylY5DPrtI6a7keT4-919TcBFuKF-fpWQZg3yUBz9pEh3YQwPICOyEwYKZbjRtMJzQ9BA/exec';
+var API_URL = 'PASTE_WEB_APP_URL_HERE';
 // ===================================================================
 
 try{var _t=localStorage.getItem('kh-theme');if(_t)document.documentElement.setAttribute('data-theme',_t)}catch(e){}
@@ -607,6 +657,10 @@ function showPortal(html,who){
   app.innerHTML=html.split('{{LOGO}}').join(logo).split('{{CROSS}}').join(CROSS);
   app.hidden=false;$('login').hidden=true;$('admin').hidden=true;
   initPortal(who);
+  app.querySelectorAll('script').forEach(function(old){
+    if(old.type&&old.type!=='text/javascript')return;
+    var s=document.createElement('script');s.textContent=old.textContent;old.replaceWith(s);
+  });
   $('logout').addEventListener('click',function(){logout()});
   if(location.hash){var t=document.querySelector(location.hash);if(t)t.scrollIntoView()}else window.scrollTo(0,0);
 }
@@ -672,12 +726,12 @@ function showAdmin(data,who){
   renderAdmin();window.scrollTo(0,0);
 }
 $('adLogout').addEventListener('click',function(){logout()});
-['tEmp','tAnn','tBen','tCon','tStat'].forEach(function(id){
+['tEmp','tNews','tAnn','tBen','tCon','tStat'].forEach(function(id){
   $(id).addEventListener('click',function(){
-    ['tEmp','tAnn','tBen','tCon','tStat'].forEach(function(o){var on=o===id;$(o).setAttribute('aria-selected',on);$($(o).getAttribute('aria-controls')).hidden=!on});
+    ['tEmp','tNews','tAnn','tBen','tCon','tStat'].forEach(function(o){var on=o===id;$(o).setAttribute('aria-selected',on);$($(o).getAttribute('aria-controls')).hidden=!on});
   });
 });
-function renderAdmin(){renderEmployees();renderAnns();renderBens();renderCons();renderStats()}
+function renderAdmin(){renderEmployees();renderNews();renderAnns();renderBens();renderCons();renderStats()}
 
 /* Employees */
 function renderEmployees(){
@@ -825,11 +879,11 @@ $('fBen').addEventListener('submit',async function(e){
 /* Stats */
 function renderStats(){
   var s=AD.stats;if(document.activeElement&&$('fStat').contains(document.activeElement))return;
-  $('sCenters').value=s.centers;$('sTeam').value=s.team;$('sPatients').value=s.patients;$('sGreen').value=s.badgeGreen;$('sBlue').value=s.badgeBlue;
+  $('sCenters').value=s.centers;$('sTeam').value=s.team;$('sPatients').value=s.patients;$('sGreen').value=s.badgeGreen;$('sBlue').value=s.badgeBlue;$('sOrgUrl').value=s.orgUrl||'';$('sOrgDate').value=s.orgDate||'';
 }
 $('fStat').addEventListener('submit',function(e){
   e.preventDefault();
-  adminCall('admin.saveStats',{centers:$('sCenters').value,team:$('sTeam').value,patients:$('sPatients').value,badgeGreen:$('sGreen').value,badgeBlue:$('sBlue').value},'Stats saved. The portal is updated.',e.submitter);
+  adminCall('admin.saveStats',{centers:$('sCenters').value,team:$('sTeam').value,patients:$('sPatients').value,badgeGreen:$('sGreen').value,badgeBlue:$('sBlue').value,orgUrl:$('sOrgUrl').value.trim(),orgDate:$('sOrgDate').value},'Saved. The portal is updated.',e.submitter);
 });
 
 /* Contacts */
@@ -865,6 +919,110 @@ $('fCon').addEventListener('submit',async function(e){
   var re=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if((d.kh&&!re.test(d.kh))||(d.cv&&!re.test(d.cv))){toast('Please check the email address format.',true);return}
   if(await adminCall('admin.saveContact',d,cEditing?'Contact updated.':'Contact added.',e.submitter))resetConForm();
+});
+
+/* News & updates */
+var nEditing=null,nPhotos=[],nThumbCache={};
+function today(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function fmtDate(d){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||'');return m?new Date(+m[1],+m[2]-1,+m[3]).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):d}
+function renderNews(){
+  if(!$('nDate').value)$('nDate').value=today();
+  var list=AD.news||[];
+  $('nList').innerHTML=list.length?list.map(function(n){
+    return '<div class="item"><div class="ico" style="background:var(--blue-soft);color:var(--blue-deep)">'+svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>')+'</div><div class="grow"><b>'+esc(n.title)+(n.status==='Draft'?'<span class="cat-tag ben" style="background:#FFF4E0;color:#8A5A00">Draft</span>':'')+'</b><small>'+esc(fmtDate(n.date))+' · '+(n.photos||[]).length+' photo'+((n.photos||[]).length===1?'':'s')+'</small></div>'+
+      '<div class="row-actions"><button class="abtn sm" data-act="edit" data-id="'+esc(n.id)+'">Edit</button><button class="abtn sm danger" data-act="del" data-id="'+esc(n.id)+'">Delete</button></div></div>';
+  }).join(''):'<div class="empty">No posts yet.</div>';
+}
+function renderPhotoGrid(){
+  $('nPhotos').innerHTML=nPhotos.map(function(p,i){
+    var src=p.thumbData||nThumbCache[p.t]||'';
+    return '<div class="ph-item"><div class="ph-th">'+(src?'<img src="'+src+'" alt="">':'<span class="ph-wait">Loading…</span>')+(i===0?'<span class="ph-cover">Cover</span>':'')+'</div>'+
+      '<input type="text" maxlength="200" placeholder="Caption (optional)" data-i="'+i+'" value="'+esc(p.c||'')+'" aria-label="Caption for photo '+(i+1)+'">'+
+      '<div class="ph-act"><button type="button" class="abtn sm" data-mv="-1" data-i="'+i+'" aria-label="Move left"'+(i===0?' disabled':'')+'>\u2190</button><button type="button" class="abtn sm" data-mv="1" data-i="'+i+'" aria-label="Move right"'+(i===nPhotos.length-1?' disabled':'')+'>\u2192</button><button type="button" class="abtn sm danger" data-rm="'+i+'">Remove</button></div></div>';
+  }).join('');
+}
+$('nPhotos').addEventListener('input',function(e){if(e.target.dataset.i!=null)nPhotos[+e.target.dataset.i].c=e.target.value});
+$('nPhotos').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  if(b.dataset.rm!=null){nPhotos.splice(+b.dataset.rm,1);renderPhotoGrid();return}
+  if(b.dataset.mv!=null){var i=+b.dataset.i,j=i+(+b.dataset.mv);var t=nPhotos[i];nPhotos[i]=nPhotos[j];nPhotos[j]=t;renderPhotoGrid()}
+});
+function resize(file,max,q){
+  return new Promise(function(res,rej){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var r=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*r),h=Math.round(img.height*r);
+      var c=document.createElement('canvas');c.width=w;c.height=h;var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',q));
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);rej(new Error('Could not read '+file.name+'. Please use a JPG or PNG photo.'))};
+    img.src=url;
+  });
+}
+async function addFiles(files){
+  files=[].slice.call(files).filter(function(f){return /^image\//.test(f.type)});
+  if(!files.length)return;
+  $('nProg').textContent='Preparing '+files.length+' photo'+(files.length>1?'s':'')+'…';
+  for(var i=0;i<files.length;i++){
+    try{
+      var full=await resize(files[i],1600,.82),th=await resize(files[i],480,.72);
+      nPhotos.push({full:full,thumbData:th,c:'',name:files[i].name});renderPhotoGrid();
+    }catch(x){toast(x.message,true)}
+  }
+  $('nProg').textContent='';
+}
+$('nFiles').addEventListener('change',function(){addFiles(this.files);this.value=''});
+var nDrop=$('nDrop');
+['dragenter','dragover'].forEach(function(ev){nDrop.addEventListener(ev,function(e){e.preventDefault();nDrop.classList.add('over')})});
+['dragleave','drop'].forEach(function(ev){nDrop.addEventListener(ev,function(e){e.preventDefault();nDrop.classList.remove('over')})});
+nDrop.addEventListener('drop',function(e){addFiles(e.dataTransfer.files)});
+function syncNewsBtn(){$('nSave').textContent=$('nDraft').checked?'Save draft':(nEditing?'Save and publish':'Publish')}
+$('nPub').addEventListener('change',syncNewsBtn);$('nDraft').addEventListener('change',syncNewsBtn);
+function resetNewsForm(){nEditing=null;nPhotos=[];$('fNews').reset();$('nDate').value=today();$('nFormTitle').textContent='Post news & updates';$('nCancel').hidden=true;$('nProg').textContent='';renderPhotoGrid();syncNewsBtn()}
+$('nCancel').addEventListener('click',resetNewsForm);
+$('nList').addEventListener('click',async function(e){
+  var btn=e.target.closest('button');if(!btn)return;
+  var n=(AD.news||[]).filter(function(x){return x.id===btn.dataset.id})[0];if(!n)return;
+  if(btn.dataset.act==='edit'){
+    nEditing=n.id;$('nTitle').value=n.title;$('nSub').value=n.sub;$('nDesc').value=n.desc;$('nDate').value=n.date;
+    (n.status==='Draft'?$('nDraft'):$('nPub')).checked=true;
+    nPhotos=(n.photos||[]).map(function(p){return {f:p.f,t:p.t,c:p.c||''}});
+    $('nFormTitle').textContent='Edit post';$('nCancel').hidden=false;syncNewsBtn();renderPhotoGrid();
+    $('fNews').scrollIntoView({behavior:'smooth',block:'start'});
+    var need=nPhotos.map(function(p){return p.t}).filter(function(t){return !nThumbCache[t]});
+    for(var i=0;i<need.length;i+=6){
+      try{var s=getSession();var r=await api('images',{token:s.t,ids:need.slice(i,i+6)});
+        if(r&&r.images){Object.keys(r.images).forEach(function(k){nThumbCache[k]=r.images[k]});renderPhotoGrid()}}catch(x){}
+    }
+  }
+  if(btn.dataset.act==='del'&&confirm('Delete "'+n.title+'" and its photos? This can\u2019t be undone.'))
+    adminCall('admin.removeNews',{id:n.id},'Post deleted.',btn).then(function(ok){if(ok&&nEditing===n.id)resetNewsForm()});
+});
+$('fNews').addEventListener('submit',async function(e){
+  e.preventDefault();
+  var title=$('nTitle').value.trim(),date=$('nDate').value;
+  if(!title){toast('Please enter a title.',true);return}
+  if(!date){toast('Please choose a date.',true);return}
+  var save=$('nSave');save.disabled=true;
+  try{
+    var s=getSession(),todo=nPhotos.filter(function(p){return !p.f});
+    for(var i=0;i<todo.length;i++){
+      $('nProg').textContent='Uploading photo '+(i+1)+' of '+todo.length+'…';
+      var p=todo[i];
+      var r1=await api('admin.uploadImage',{token:s.t,data:{data:p.full.split(',')[1],mime:'image/jpeg',name:p.name||'photo.jpg'}});
+      if(r1.expired){logout('Your session has ended. Please sign in again.');return}
+      if(!r1.ok)throw new Error(r1.error||'Upload failed.');
+      var r2=await api('admin.uploadImage',{token:s.t,data:{data:p.thumbData.split(',')[1],mime:'image/jpeg',name:'thumb-'+(p.name||'photo.jpg')}});
+      if(!r2.ok)throw new Error(r2.error||'Upload failed.');
+      p.f=r1.id;p.t=r2.id;nThumbCache[p.t]=p.thumbData;delete p.full;
+    }
+    $('nProg').textContent='Saving…';
+    var d={id:nEditing,title:title,sub:$('nSub').value.trim(),desc:$('nDesc').value,date:date,status:$('nDraft').checked?'Draft':'Published',
+      photos:nPhotos.map(function(p){return {f:p.f,t:p.t,c:(p.c||'').trim()}})};
+    var draft=d.status==='Draft';
+    if(await adminCall('admin.saveNews',d,draft?'Draft saved. Employees won\u2019t see it yet.':'Published. Employees can see it now.'))resetNewsForm();
+  }catch(x){toast(x.message,true)}
+  finally{save.disabled=false;if($('nProg').textContent.indexOf('Saving')===0||$('nProg').textContent.indexOf('Uploading')===0)$('nProg').textContent=''}
 });
 
 </script>
